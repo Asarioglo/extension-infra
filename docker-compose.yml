@@ -1,0 +1,66 @@
+version: "3.6"
+
+networks:
+  app_global:
+    driver: bridge
+
+services:
+  postgres_db:
+    extends:
+      file: db/docker-compose.yml
+      service: db
+    container_name: postgres_db
+    networks:
+      - app_global
+
+  postgress_admin:
+    extends:
+      file: db/docker-compose.yml
+      service: adminer
+    container_name: postgress_admin
+    networks:
+      - app_global
+
+  keycloak:
+    extends:
+      file: keycloak/docker-compose.yml
+      service: keycloak_web
+
+    container_name: keycloak_web
+    depends_on:
+      - postgres_db
+    networks:
+      - app_global
+
+  kong_gateway:
+    extends:
+      file: gateway/kong/docker-compose.yml
+      service: kong
+    container_name: kong_gateway
+    depends_on: 
+      - keycloak
+    networks:
+      - app_global
+
+
+  # redis-cache:
+  #   image: redis:6.2.7-alpine
+  #   ports:
+  #     - ${REDIS_PORT}:6379
+  #   networks:
+  #     - app_global
+
+  # tyk:
+  #   extends:
+  #     file: gateway/tyk/docker-compose.yml
+  #     service: tyk-gateway
+  #   container_name: tyk-gateway
+  #   depends_on:
+  #     - redis-cache
+  #     - postgres_db
+  #     - keycloak
+  #   networks:
+  #     - app_global
+
+volumes:
+  pgdata:

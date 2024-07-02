@@ -1,0 +1,92 @@
+_format_version: "3.0"
+
+services:
+  - name: carvantage
+    host: host.docker.internal
+    port: 3006
+    routes:
+      - name: carvantage-main-route
+        paths:
+          - /carvantage/
+        strip_path: true
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+      - name: logout
+        paths:
+          - /ca/logout
+        strip_path: false
+
+plugins:
+  - name: oidc
+    # https://github.com/revomatico/kong-oidc/blob/master/README.md
+    service: carvantage
+    config:
+      client_id: kong-oidc
+      client_secret: xk7XX2KswVBotOjvk1JvF4k1ZdNMr6s4
+      unauth_action: auth # deny (to return 401)
+      discovery: http://keycloak:8080/realms/IAA_Extension/.well-known/openid-configuration
+      scope: openid
+
+      logout_path: /ca/logout
+
+      # After the plugin clears session (logout), redirect to KC to also clear session
+      redirect_after_logout_uri: http://keycloak:8080/realms/IAA_Extension/protocol/openid-connect/logout
+      # must have redirect_after_logout_uri for this to work. Only "yes" works/
+      post_logout_redirect_uri: http://localhost:8082/carvantage/api/users/priv/profile
+      redirect_after_logout_with_id_token_hint: "yes"
+
+      # header_claims:
+      #   - email
+      #   - email_verified
+      
+      # These routes are public and don't need authentication
+      ignore_auth_filters: /carvantage/assets,~/carvantage/api/(.*)/pub(.*)$
+
+  - name: cors
+    # https://docs.konghq.com/hub/kong-inc/cors/configuration/
+    service: carvantage
+    config: 
+      origins:
+        - localhost
+      methods:
+        - GET
+        - POST
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Auth-Token
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  - name: rate-limiting
+    config:
+      # https://docs.konghq.com/hub/kong-inc/rate-limiting/
+      second: 5
+      minute: 10
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+      redis_ssl: false
+      redis_ssl_verify: false
+
+  - name: ip-restriction
+    config:
+      allow:
+        - 127.0.0.0/24
+        - 192.168.0.0/16
+
+# check out these plugins
+# - bot-detection
+# - proxy-cache
+# - request-termination

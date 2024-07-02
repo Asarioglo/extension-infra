@@ -1,0 +1,127 @@
+_format_version: "3.0"
+
+services:
+  - name: carvantage
+    host: host.docker.internal
+    port: 3006
+    routes:
+      # Route handling all public assets. Must be unprotected and allow only to GET things form it
+      # All assets for an application should reside under the /assets route
+      - name: public-assets
+        paths:
+          - ~/carvantage/assets(.*)$
+        strip_path: false
+        methods:
+          - GET
+        plugins:
+          - name: request-transformer
+            config:
+              replace:
+                uri: /assets/$(uri_captures[1])
+
+
+      # Route handling public API routes. These are routed defined by services and hit endpoints
+      # on said services.
+      - name: public-routes
+        paths:
+          - ~/carvantage/api/(.*)/pub(.*)$
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+        plugins:
+          - name: request-transformer
+            config:
+              replace:
+                uri: /api/$(uri_captures[1])/pub$(uri_captures[2])
+
+      # Route to act as a placeholder for the oidc logout
+      - name: oidc-logout
+        paths: 
+          - /logout
+        strip_path: false
+        methods:
+          - GET
+          - POST
+
+      # Route handling private (protected) API endpoints. Such endpoints will first require authentication through 
+      # Keycloak UI and then must test that the user and claims have been attached to the request headers.
+      - name: private-routes
+        paths:
+          - ~/carvantage/api/(.*)/priv(.*)$
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+        plugins:
+          - name: request-transformer
+            config:
+              replace:
+                uri: /api/$(uri_captures[1])/priv$(uri_captures[2])
+          - name: oidc
+            # https://github.com/revomatico/kong-oidc/blob/master/README.md
+            config:
+              client_id: kong-oidc
+              client_secret: xk7XX2KswVBotOjvk1JvF4k1ZdNMr6s4
+              logout_path: /logout
+              unauth_action: auth # deny (to return 401)
+              discovery: http://keycloak:8080/realms/IAA_Extension/.well-known/openid-configuration
+              scope: openid
+              # After the plugin clears session (logout), redirect to KC to also clear session
+              redirect_after_logout_with_id_token_hint: >-
+                http://keycloak:8080/realms/IAA_Extension/protocol/openid-connect/logout?post_logout_redirect_uri=http://localhost:8082/logout-success/1
+              header_claims:
+                - email
+                - email_verified
+
+plugins:
+  - name: cors
+    # https://docs.konghq.com/hub/kong-inc/cors/configuration/
+    service: carvantage
+    config: 
+      origins:
+        - localhost
+      methods:
+        - GET
+        - POST
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Auth-Token
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  - name: rate-limiting
+    config:
+      # https://docs.konghq.com/hub/kong-inc/rate-limiting/
+      second: 5
+      minute: 10
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+      redis_ssl: false
+      redis_ssl_verify: false
+
+  - name: ip-restriction
+    config:
+      allow:
+        - 127.0.0.0/24
+        - 192.168.0.0/16
+
+# check out these plugins
+# - bot-detection
+# - proxy-cache
+# - request-termination
+# - prometheus
