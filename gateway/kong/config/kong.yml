@@ -14,10 +14,16 @@ services:
           - POST
           - PUT
           - DELETE
+        protocols:
+          - https
+        https_redirect_status_code: 308
       - name: logout
         paths:
           - /ca/logout
         strip_path: false
+        protocols:
+          - https
+        https_redirect_status_code: 308
 
 plugins:
   - name: oidc
@@ -35,7 +41,7 @@ plugins:
       # After the plugin clears session (logout), redirect to KC to also clear session
       redirect_after_logout_uri: http://keycloak:8080/realms/IAA_Extension/protocol/openid-connect/logout
       # must have redirect_after_logout_uri for this to work. Only "yes" works/
-      post_logout_redirect_uri: http://localhost:8082/carvantage/api/users/priv/profile
+      post_logout_redirect_uri: https://carvantage.host.my/carvantage/api/users/priv/profile
       redirect_after_logout_with_id_token_hint: "yes"
 
       # header_claims:

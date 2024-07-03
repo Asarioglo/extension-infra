@@ -5,7 +5,7 @@ services:
     image: local/docker-kong-oidc:3.4.0-2
     volumes:
       - "./config:/usr/local/kong/declarative"
-      - "./logs:/usr/logs"
+      - "./certs:/usr/local/kong/certs"
     environment:
       # https://docs.konghq.com/gateway/3.7.x/reference/configuration
       - KONG_DATABASE=off
@@ -18,12 +18,19 @@ services:
       # - KONG_ADMIN_ACCESS_LOG=/usr/logs/admin_acess.log
       # - KONG_PROXY_ERROR_LOG=/usr/logs/proxy_err.txt
       # - KONG_ADMIN_ERROR_LOG=/usr/logs/admin_err.txt
-      - KONG_PROXY_LISTEN=0.0.0.0:8082, 0.0.0.0:8443 ssl
-      - KONG_ADMIN_LISTEN=0.0.0.0:8083, 0.0.0.0:8444 ssl
+      - KONG_PROXY_LISTEN=${EXT_KONG_HTTP_HOST}:${EXT_KONG_HTTP_PORT_INTERNAL}, ${EXT_KONG_HTTP_HOST}:${EXT_KONG_SSL_PORT_INTERNAL} ssl
+      - KONG_ADMIN_LISTEN=${EXT_KONG_HTTP_HOST}:${EXT_KONG_ADMIN_HTTP_PORT_INTERNAL}, ${EXT_KONG_HTTP_HOST}:${EXT_KONG_ADMIN_SSL_PORT_INTERNAL} ssl
       - KONG_LOG_LEVEL=debug
       - KONG_PLUGINS=bundled,oidc
+      - KONG_SSL_CERT=/usr/local/kong/certs/certificate.pem
+      - KONG_SSL_CERT_KEY=/usr/local/kong/certs/key.pem
     ports:
-      - "8082:8082/tcp"
-      - "8083:8083/tcp"
-      - "8443:8443/tcp"
-      - "8444:8444/tcp"
+      - "${EXT_KONG_HTTP_PORT_EXTERNAL}:${EXT_KONG_HTTP_PORT_INTERNAL}/tcp"
+      - "${EXT_KONG_ADMIN_HTTP_PORT_EXTERNAL}:${EXT_KONG_ADMIN_HTTP_PORT_INTERNAL}/tcp"
+      - "${EXT_KONG_SSL_PORT_EXTERNAL}:${EXT_KONG_SSL_PORT_INTERNAL}/tcp"
+      - "${EXT_KONG_ADMIN_SSL_PORT_EXTERNAL}:${EXT_KONG_ADMIN_SSL_PORT_INTERNAL}/tcp"
+    # Uncomment to run in verbose mode
+    # command:
+    #   - "kong"
+    #   - "start"
+    #   - "--v"
