@@ -5,25 +5,32 @@ services:
     image: quay.io/keycloak/keycloak:latest
     container_name: keycloak_web
     environment:
+      # Database
       KC_DB: postgres
       KC_DB_URL: "jdbc:postgresql://postgres_db:5432/${KEYCLOAK_POSTGRES_DB}"
       KC_DB_USERNAME: "${KEYCLOAK_DB_USER}"
       KC_DB_PASSWORD: "${KEYCLOAK_DB_PASS}"
 
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: ${KEYCLOAK_PORT}
-      KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME_STRICT_HTTPS: false
-      # For running behind a TLS termination proxy
-      # --http-enabled=true
-      # --proxy-headers=forwarded|xforwarded
-
+      # Initialization params
       KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN_NAME}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
 
+      # For running behind a TLS termination proxy
+      # KC_HOSTNAME: ${KEYCLOAK_HOST_NAME:-localhost}
+      # KC_PROXY_HEADERS: "forwarded|xforwarded"
+      # https://keycloak.discourse.group/t/using-keycloak-behind-kong-proxy-redirection-issue/16261
+      KC_HTTP_PORT: ${KEYCLOAK_PORT:-8080}
+      KC_PROXY: edge
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      KC_HTTP_RELATIVE_PATH: /auth
+
+      # Runtime configuration
       KC_LOG_LEVEL: info
       KC_METRICS_ENABLED: true
       KC_HEALTH_ENABLED: true
+
     command: start-dev
     # command: ["./wait-for-it.sh", "postgres_db", "5432", "kc.sh start-dev"]
     ports:

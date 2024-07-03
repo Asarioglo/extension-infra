@@ -16,10 +16,22 @@ services:
           - DELETE
         protocols:
           - https
-        https_redirect_status_code: 308
+        https_redirect_status_code: 308 # permanent redirect
       - name: logout
         paths:
           - /ca/logout
+        strip_path: false
+        protocols:
+          - https
+        https_redirect_status_code: 308
+
+  - name: keycloak-auth-carvantage
+    host: keycloak
+    port: 8080
+    routes:
+      - name: realm-route
+        paths:
+          - /auth
         strip_path: false
         protocols:
           - https
@@ -33,13 +45,13 @@ plugins:
       client_id: kong-oidc
       client_secret: xk7XX2KswVBotOjvk1JvF4k1ZdNMr6s4
       unauth_action: auth # deny (to return 401)
-      discovery: http://keycloak:8080/realms/IAA_Extension/.well-known/openid-configuration
+      discovery: https://carvantage.host.my/auth/realms/IAA_Extension/.well-known/openid-configuration
       scope: openid
 
       logout_path: /ca/logout
 
       # After the plugin clears session (logout), redirect to KC to also clear session
-      redirect_after_logout_uri: http://keycloak:8080/realms/IAA_Extension/protocol/openid-connect/logout
+      redirect_after_logout_uri: https://carvantage.host.my/auth/realms/IAA_Extension/protocol/openid-connect/logout
       # must have redirect_after_logout_uri for this to work. Only "yes" works/
       post_logout_redirect_uri: https://carvantage.host.my/carvantage/api/users/priv/profile
       redirect_after_logout_with_id_token_hint: "yes"
@@ -75,10 +87,11 @@ plugins:
       preflight_continue: false
 
   - name: rate-limiting
+    # configuring this globally is not an option. Needs to be set route-by-route
     config:
       # https://docs.konghq.com/hub/kong-inc/rate-limiting/
-      second: 5
-      minute: 10
+      second: 1000
+      minute: 1000
       hour: 1000
       policy: local
       fault_tolerant: true
