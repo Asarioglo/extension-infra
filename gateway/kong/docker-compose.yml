@@ -2,10 +2,10 @@ version: "3.3"
 
 services:
   kong:
-    image: local/docker-kong-oidc:3.4.0-2
+    image: ${EXT_KONG_IMAGE_NAME}
     volumes:
-      - "./config:/usr/local/kong/declarative"
-      - "./certs:/usr/local/kong/certs"
+      - "${EXT_KONG_CERT_DIRECTORY}:/usr/local/kong/certs"
+      - ./logs:/usr/local/kong/logs
     environment:
       # https://docs.konghq.com/gateway/3.7.x/reference/configuration
       - KONG_DATABASE=off
@@ -24,11 +24,20 @@ services:
       - KONG_PLUGINS=bundled,oidc
       - KONG_SSL_CERT=/usr/local/kong/certs/${EXT_KONG_CERT_NAME}
       - KONG_SSL_CERT_KEY=/usr/local/kong/certs/${EXT_KONG_CERT_KEY_NAME}
+
+      # Substituted into kong.yml at container startup
+      - CARVANTAGE_KONG_KC_CLIENT_ID=${CARVANTAGE_KONG_KC_CLIENT_ID}
+      - CARVANTAGE_KONG_KC_CLIENT_SECRET=${CARVANTAGE_KONG_KC_CLIENT_SECRET}
+      - CARVANTAGE_KONG_KC_DISCOVERY_URL=${CARVANTAGE_KONG_KC_DISCOVERY_URL}
+      - CARVANTAGE_KONG_LOGOUT_PATH=${CARVANTAGE_KONG_LOGOUT_PATH}
+      - CARVANTAGE_KONG_REDIRECT_AFTER_LOGOUT=${CARVANTAGE_KONG_REDIRECT_AFTER_LOGOUT}
+      - CARVANTAGE_KONG_POST_LOGOUT_REDIRECT=${CARVANTAGE_KONG_POST_LOGOUT_REDIRECT}
     ports:
       - "${EXT_KONG_HTTP_PORT_EXTERNAL}:${EXT_KONG_HTTP_PORT_INTERNAL}/tcp"
       - "${EXT_KONG_ADMIN_HTTP_PORT_EXTERNAL}:${EXT_KONG_ADMIN_HTTP_PORT_INTERNAL}/tcp"
       - "${EXT_KONG_SSL_PORT_EXTERNAL}:${EXT_KONG_SSL_PORT_INTERNAL}/tcp"
       - "${EXT_KONG_ADMIN_SSL_PORT_EXTERNAL}:${EXT_KONG_ADMIN_SSL_PORT_INTERNAL}/tcp"
+
     # Uncomment to run in verbose mode
     # command:
     #   - "kong"
