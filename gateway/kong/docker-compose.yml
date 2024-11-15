@@ -2,6 +2,8 @@ version: "3.3"
 
 services:
   kong:
+    build:
+      context: .
     image: ${EXT_KONG_IMAGE_NAME}
     volumes:
       - "${EXT_KONG_CERT_DIRECTORY}:/usr/local/kong/certs"

@@ -2,7 +2,7 @@ version: "3.6"
 
 services:
   keycloak_web:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak_web
     environment:
       # Database
