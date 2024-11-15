@@ -2,8 +2,8 @@ _format_version: "3.0"
 
 services:
   - name: carvantage
-    host: host.docker.internal
-    port: 3006
+    host: $CARVANTAGE_HOST_NAME
+    port: $CARVANTAGE_HTTP_PORT
     routes:
       - name: carvantage-main-route
         paths:

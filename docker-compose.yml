@@ -42,25 +42,5 @@ services:
     networks:
       - app_global
 
-
-  # redis-cache:
-  #   image: redis:6.2.7-alpine
-  #   ports:
-  #     - ${REDIS_PORT}:6379
-  #   networks:
-  #     - app_global
-
-  # tyk:
-  #   extends:
-  #     file: gateway/tyk/docker-compose.yml
-  #     service: tyk-gateway
-  #   container_name: tyk-gateway
-  #   depends_on:
-  #     - redis-cache
-  #     - postgres_db
-  #     - keycloak
-  #   networks:
-  #     - app_global
-
 volumes:
   pgdata:

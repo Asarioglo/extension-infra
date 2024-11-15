@@ -7,7 +7,7 @@ services:
     image: ${EXT_KONG_IMAGE_NAME}
     volumes:
       - "${EXT_KONG_CERT_DIRECTORY}:/usr/local/kong/certs"
-      - ./logs:/usr/local/kong/logs
+      - "${EXT_KONG_LOGS_HOST_PATH}:/usr/local/kong/logs"
     environment:
       # https://docs.konghq.com/gateway/3.7.x/reference/configuration
       - KONG_DATABASE=off
