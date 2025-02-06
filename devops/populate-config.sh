@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 if [ -z "$1" ]; then
-  echo "Usage: $0 <config-file>"
+  echo "Usage: $0 <template-file>"
   exit 1
 fi
 
 if [ -z "$2" ]; then
-    echo "Usage: $0 <config-file> <env-file>"
+    echo "Usage: $0 <template-file> <env-file>"
     exit 1
 fi
 
@@ -18,7 +18,7 @@ fi
 
 if [ -n "$2" ]; then
     . $2
-    export $(cut -d= -f1 "$2")
+    export $(grep -v '^#' "$2" | grep -v '^\s*$' | cut -d= -f1)
 fi
 
 if [ -f "$_output_file" ]; then

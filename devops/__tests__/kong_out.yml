@@ -42,8 +42,8 @@ plugins:
     # https://github.com/revomatico/kong-oidc/blob/master/README.md
     service: carvantage
     config:
-      client_id: kong-oidc
-      client_secret: xk7XX2KswVBotOjvk1JvF4k1ZdNMr6s4
+      client_id: carvantage-oidc
+      client_secret: FMNpTBRejA5iVvjQKfzehopBGLB65jqp
       unauth_action: auth # deny (to return 401)
       discovery: https://carvantage.host.my/auth/realms/IAA_Extension/.well-known/openid-configuration
       scope: openid

@@ -4,10 +4,10 @@ services:
   kong:
     build:
       context: .
-    image: ${EXT_KONG_IMAGE_NAME}
+    image: ${EXT_KONG_IMAGE_NAME}:${EXT_KONG_IMAGE_TAG}
     volumes:
-      - "${EXT_KONG_CERT_DIRECTORY}:/usr/local/kong/certs"
-      - "${EXT_KONG_LOGS_HOST_PATH}:/usr/local/kong/logs"
+      - "${EXT_KONG_HOST_CERT_DIR}:/usr/local/kong/certs"
+      - "${EXT_KONG_HOST_LOG_DIR}:/usr/local/kong/logs"
     environment:
       # https://docs.konghq.com/gateway/3.7.x/reference/configuration
       - KONG_DATABASE=off

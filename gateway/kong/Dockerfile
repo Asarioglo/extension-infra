@@ -21,9 +21,6 @@ RUN set -ex \
     && luarocks install lua-ffi-zlib \
     && luarocks install penlight
 
-# To debug lua-resty-openidc (log based debugging only)
-# COPY lua-resty-openidc /tmp/lua-resty-openidc
-
 # RUN set -ex \
 #     && cd /tmp/lua-resty-openidc \
 #     # Install dependencies to build the lua-resty-openidc from local files
@@ -173,7 +170,6 @@ RUN mkdir -p /usr/local/kong/declarative/ && \
 USER kong
 
 # Copy configuration template and entrypoint script
-COPY config/kong-template.yml /usr/local/kong/declarative/kong-template.yml
 COPY config/kong.yml /usr/local/kong/declarative/kong.yml
 
 # Switch back to kong user
