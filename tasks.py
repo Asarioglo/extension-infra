@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-from invoke import task
+from invoke import task, MockContext
 from contextlib import contextmanager
 import sys
 import os
+import pytest
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 KONG_CONFIG_DIR = os.path.join(PROJECT_ROOT, "gateway/kong/kong.yml")
@@ -45,6 +46,26 @@ def get_env(varname: str):
             line = f.readline()
     
     return None
+
+def test_get_env():
+    envvar = "EXT_KONG_IMAGE_NAME"
+    val = get_env(envvar)
+    assert val == "local/bosca-infra/kong"
+
+    
+def get_envs(envfile_path: str):
+    """Env file path is relative to root directory"""
+    debug("loading an env file")
+
+    vars = {}
+    with open(os.path.join(PROJECT_ROOT, envfile_path)) as f:
+        line = f.readline()
+        while line:
+            parts = line.split("=")
+            if len(parts) == 2:
+               vars[parts[0]] = parts[2]
+            
+    return vars
     
 @contextmanager
 def change_dir(new_dir):
@@ -94,11 +115,11 @@ def compile_env(src_env_file: str, dynamic_params: dict):
         # print("Removing: ", tmp_file_name)
 
 
-@task
-def test_compile(c):
-    with compile_env("devops/config/dev.env", {"FOO": "bar", "EXT_KONG_IMAGE_TAG": "test"}) as env_file:
-        with open(env_file) as f:
-            print(f.read())
+# @task
+# def test_compile(c):
+#     with compile_env("devops/config/dev.env", {"FOO": "bar", "EXT_KONG_IMAGE_TAG": "test"}) as env_file:
+#         with open(env_file) as f:
+#             print(f.read())
 
             
 @task
@@ -155,30 +176,7 @@ def dev(c):
     c.run("my")
     c.run("my echo 3006")
     
-@task
-def test(c):
-    c.run(os.path.join(DEVOPS_DIR, "__tests__/populate-config.test.sh"))
-
-    
-@task
-def build_stage(c):
-    test(c)
-    print("Verifying AWS credentials...")
-    c.run("aws sts get-caller-identity")
-    staging_env = os.path.join(DEVOPS_DIR, "config/staging.env")
-    kong_version = get_version()
-    img_tag = f"staging_{kong_version}"
-    
-    with replace_kong_config():
-        with compile_env(staging_env, {"EXT_KONG_IMAGE_TAG": img_tag}) as env_file:
-            c.run("docker-compose build")
-            c.run("my")
-            c.run("my echo 3006")
-            
-@task
-def test_command(c):
-    try:
-        c.run("abc")
-    except Exception as e:
-        print("Oops, command not found")
-        print(e)
+# @task
+# def test(c):
+#     c.run(os.path.join(DEVOPS_DIR, "__tests__/populate-config.test.sh"))
+# ask
