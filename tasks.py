@@ -13,6 +13,12 @@ DEVOPS_DIR = os.path.join(PROJECT_ROOT, "devops")
 ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 VERBOSE = True
 
+def apps():
+    appsdir = to_abs("apps")
+    for approot in os.scandir(appsdir):
+        if approot.is_dir():
+            yield approot.path
+
 @contextmanager
 def tmp_file(path: str, content: str):
     """
@@ -229,8 +235,12 @@ def copy_dev_env(c):
     
 @task
 def dev(c):
-    copy_if_not_exists(c, "devops/config/dev.env", ".env")
-
+    # Let's join all envvars from apps into one big-ass envvar. 
+    # These envvars will come from the environment on prod
+    envfiles = [to_abs("devops/config/dev.env")]
+    for appdir in apps():
+        envfiles.append(os.path.join(appdir, "vars.env"))
+ 
     # Let's generate some certificates, if we need the ofc.
     key_name = get_env("EXT_KONG_CERT_KEY_NAME") 
     cert_name = get_env("EXT_KONG_CERT_NAME")
@@ -272,6 +282,9 @@ def dev(c):
     else:
         print(f"Using certificates in {file_location}")
         
+       
+    join_files(envfiles, ".env")
+    return        
     c.run("cp devops/config/dev.env .env")
     c.run("docker-compose up --build --force-recreate -d")
     c.run("my")
