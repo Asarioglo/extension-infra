@@ -5,12 +5,59 @@ from contextlib import contextmanager
 import sys
 import os
 import pytest
+import shutil
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
 KONG_CONFIG_DIR = os.path.join(PROJECT_ROOT, "gateway/kong/kong.yml")
 DEVOPS_DIR = os.path.join(PROJECT_ROOT, "devops")
 ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 VERBOSE = True
+
+@contextmanager
+def tmp_file(path: str, content: str):
+    """
+    Creates a tmp file, yields, then removes it
+    Expects relative paths
+    """
+    path = os.path.join(PROJECT_ROOT, path)
+    debug(f"Creating a temporary file at {path}")
+    try:
+        with open(path, 'w') as f:
+            f.write(content)
+            f.close()
+        debug("file created, yielding")
+        yield
+    finally:
+        debug(f"Cleaning up file {path}")
+        try: os.remove(path)
+        except Exception: pass
+        
+def to_abs(path: str):
+    return os.path.join(PROJECT_ROOT, path)
+        
+@contextmanager
+def repl_file(path: str, content: str):
+    """
+    Replaces the contents of the file, yields, then brings them back
+    Expects relative path
+    """
+    debug(f"Replacing contents of file at {path} with \n{content}")
+    path = os.path.join(PROJECT_ROOT, path)
+    orig_content = None
+    try:
+        with open(path, 'r+') as f:
+            orig_content = f.read()
+            f.truncate(0)
+            f.write(content)
+            f.close()
+        yield
+    finally:
+        if orig_content is not None:
+            with open(path, 'w') as f:
+                f.truncate(0)
+                f.write(orig_content)
+                f.close()
+        
 
 def debug(log: str):
     if VERBOSE:
@@ -48,9 +95,48 @@ def get_env(varname: str):
     return None
 
 def test_get_env():
-    envvar = "EXT_KONG_IMAGE_NAME"
-    val = get_env(envvar)
-    assert val == "local/bosca-infra/kong"
+    test_envs = (
+        "# This is a test comment\n"
+        "TEST_GET_ENV_1=test_variable_1\n"
+        "# another test comment\n"
+        "TEST_GET_ENV_2=!@#$%^&*()\n"
+    )
+    with repl_file(".env", test_envs):
+        assert get_env("TEST_GET_ENV_1") == "test_variable_1"
+        assert get_env("TEST_GET_ENV_2") == "!@#$%^&*()"
+
+def join_files(paths: list, out_file_path: str):
+    content = ""
+    for path in paths:
+        abs_path = os.path.join(PROJECT_ROOT, path)
+        with open(abs_path, 'r') as f:
+            content += f.read()
+            content += "\n"
+            f.close()
+        
+    abs_out_path = to_abs(out_file_path)
+    with open(abs_out_path, 'w') as f:
+        f.truncate(0)
+        f.write(content)
+        f.close()
+        
+def test_join_files():
+    f1 = "Content line 1\nContent Line 2"
+    f2 = "CONTENT line 3\nContent Line 4"
+    try:
+        with tmp_file("__tmp1", f1):
+            with tmp_file("__tmp2", f2):
+                join_files(["__tmp1", "__tmp2"], "__tmp3") 
+                assert os.path.exists(to_abs("__tmp3"))
+                # With override
+                join_files(["__tmp1", "__tmp2"], "__tmp3")
+                with open(to_abs("__tmp3")) as f:
+                    actual = f.read()
+                    expected = f"{f1}\n{f2}\n"
+                    debug(f"Comparing {actual} WITH {expected}")
+                    assert actual == expected 
+    finally:
+        os.remove("__tmp3")
 
     
 def get_envs(envfile_path: str):
@@ -59,13 +145,28 @@ def get_envs(envfile_path: str):
 
     vars = {}
     with open(os.path.join(PROJECT_ROOT, envfile_path)) as f:
-        line = f.readline()
+        line = f.readline().strip()
         while line:
             parts = line.split("=")
             if len(parts) == 2:
-               vars[parts[0]] = parts[2]
+               vars[parts[0]] = parts[1].strip()
+            line = f.readline()
             
     return vars
+
+def test_get_envs():
+    test_envs = (
+        "# This is a test comment\n"
+        "TEST_GET_ENV_1=test_variable_1\n"
+        "# another test comment\n"
+        "TEST_GET_ENV_2=!@#$%^&*()\n"
+    )
+    debug("Sterting test test_get_envs. Creating temp file")
+    with tmp_file("__test_envs.env", test_envs):
+        debug("Temp file created, reading envs")
+        envs = get_envs("__test_envs.env")
+        assert envs["TEST_GET_ENV_1"] == "test_variable_1"
+        assert envs["TEST_GET_ENV_2"] == "!@#$%^&*()"
     
 @contextmanager
 def change_dir(new_dir):
