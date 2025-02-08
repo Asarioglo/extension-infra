@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
-from invoke import task, MockContext
+from invoke import task
+from collections.abc import Mapping
 from contextlib import contextmanager
 import sys
 import os
 import pytest
-import shutil
+import yaml
+import dotenv
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-KONG_CONFIG_DIR = os.path.join(PROJECT_ROOT, "gateway/kong/kong.yml")
+KONG_CONFIG_DIR = os.path.join(PROJECT_ROOT, "gateway/kong/config")
 DEVOPS_DIR = os.path.join(PROJECT_ROOT, "devops")
 ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 VERBOSE = True
@@ -18,6 +20,17 @@ def apps():
     for approot in os.scandir(appsdir):
         if approot.is_dir():
             yield approot.path
+
+def load_env():
+    # Let's join all envvars from apps into one big-ass envvar. 
+    # These envvars will come from the environment on prod
+    envfiles = [to_abs("devops/config/dev.env")]
+    for appdir in apps():
+        envfiles.append(os.path.join(appdir, "vars.env"))
+ 
+    join_files(envfiles, ".env")
+
+    dotenv.load_dotenv()
 
 @contextmanager
 def tmp_file(path: str, content: str):
@@ -90,26 +103,68 @@ def copy_if_not_exists(c, source, dest):
         
 def get_env(varname: str):
     debug(f"Retrieving config: {varname}")
-    with open(ENV_FILE) as f:
-        line = f.readline()
-        while line:
-            parts=line.split("=")
-            if parts[0] == varname:
-                return parts[1].strip()
-            line = f.readline()
+    if varname in os.environ:
+        return os.environ[varname]
     
     return None
 
-def test_get_env():
-    test_envs = (
-        "# This is a test comment\n"
-        "TEST_GET_ENV_1=test_variable_1\n"
-        "# another test comment\n"
-        "TEST_GET_ENV_2=!@#$%^&*()\n"
-    )
-    with repl_file(".env", test_envs):
-        assert get_env("TEST_GET_ENV_1") == "test_variable_1"
-        assert get_env("TEST_GET_ENV_2") == "!@#$%^&*()"
+def test__get_env():
+    os.environ["TEST_GET_ENV_1"] = "test_variable_1"
+    os.environ["TEST_GET_ENV_2"] = "!@#$%^&*()"
+    
+    assert get_env("TEST_GET_ENV_1") == "test_variable_1"
+    assert get_env("TEST_GET_ENV_2") == "!@#$%^&*()"
+
+def deep_merge_yaml(d1, d2):
+    """
+    Ok, maybe deep merge is a bit drastic
+    """
+    merged = {}
+    keys_to_merge = ["services", "plugins", "_format_version"]
+
+    for key in keys_to_merge:
+        if key in d1 and key in d2:
+            if isinstance(d1[key], Mapping) and isinstance(d2[key], Mapping):
+                # Deep merge dictionaries
+                merged[key] = deep_merge_dicts(d1[key], d2[key], keys_to_merge)
+            elif isinstance(d1[key], list) and isinstance(d2[key], list):
+                # Append lists (not merging dicts inside lists)
+                merged[key] = d1[key] + d2[key]
+            else:
+                # Replace scalar values
+                merged[key] = d2[key]
+        elif key in d1:
+            merged[key] = d1[key]
+        elif key in d2:
+            merged[key] = d2[key]
+
+    return merged
+
+def join_yaml_files(yml_paths: list):
+    result = None
+    for fpath in yml_paths:
+        fpath_abs = to_abs(fpath)
+        if os.path.exists(fpath_abs):
+            with open(fpath_abs, 'r') as f:
+                yml = yaml.safe_load(f)
+                if result is None:
+                    result = yml
+                else:
+                    result = deep_merge_yaml(result, yml)
+    
+    return result
+
+def compile_kong_config():
+    kong_files = [os.path.join(KONG_CONFIG_DIR, "root.yml")]
+    for appdir in apps():
+        if(os.path.exists(os.path.join(appdir, "kong.yml"))):
+            kong_files.append(os.path.join(appdir, "kong.yml"))
+    
+    out = join_yaml_files(kong_files)
+    out = replace_envs_in_string(yaml.dump(out, default_flow_style=False, sort_keys=False, indent=4))
+    with open(os.path.join(KONG_CONFIG_DIR, "kong.yml"), 'w') as f:
+        f.write(out)
+        f.close()
 
 def join_files(paths: list, out_file_path: str):
     content = ""
@@ -143,37 +198,13 @@ def test_join_files():
                     assert actual == expected 
     finally:
         os.remove("__tmp3")
-
     
-def get_envs(envfile_path: str):
-    """Env file path is relative to root directory"""
-    debug("loading an env file")
+def replace_envs_in_string(string: str):
+    for key, value in os.environ.items():
+        string = string.replace(f"${{{key}}}", value)
+        
+    return string
 
-    vars = {}
-    with open(os.path.join(PROJECT_ROOT, envfile_path)) as f:
-        line = f.readline().strip()
-        while line:
-            parts = line.split("=")
-            if len(parts) == 2:
-               vars[parts[0]] = parts[1].strip()
-            line = f.readline()
-            
-    return vars
-
-def test_get_envs():
-    test_envs = (
-        "# This is a test comment\n"
-        "TEST_GET_ENV_1=test_variable_1\n"
-        "# another test comment\n"
-        "TEST_GET_ENV_2=!@#$%^&*()\n"
-    )
-    debug("Sterting test test_get_envs. Creating temp file")
-    with tmp_file("__test_envs.env", test_envs):
-        debug("Temp file created, reading envs")
-        envs = get_envs("__test_envs.env")
-        assert envs["TEST_GET_ENV_1"] == "test_variable_1"
-        assert envs["TEST_GET_ENV_2"] == "!@#$%^&*()"
-    
 @contextmanager
 def change_dir(new_dir):
     old_dir = os.getcwd()
@@ -227,7 +258,6 @@ def compile_env(src_env_file: str, dynamic_params: dict):
 #     with compile_env("devops/config/dev.env", {"FOO": "bar", "EXT_KONG_IMAGE_TAG": "test"}) as env_file:
 #         with open(env_file) as f:
 #             print(f.read())
-
             
 @task
 def copy_dev_env(c):    
@@ -235,12 +265,9 @@ def copy_dev_env(c):
     
 @task
 def dev(c):
-    # Let's join all envvars from apps into one big-ass envvar. 
-    # These envvars will come from the environment on prod
-    envfiles = [to_abs("devops/config/dev.env")]
-    for appdir in apps():
-        envfiles.append(os.path.join(appdir, "vars.env"))
- 
+    # Setup the environmental variables. 
+    load_env()
+
     # Let's generate some certificates, if we need the ofc.
     key_name = get_env("EXT_KONG_CERT_KEY_NAME") 
     cert_name = get_env("EXT_KONG_CERT_NAME")
@@ -281,16 +308,25 @@ def dev(c):
             ))
     else:
         print(f"Using certificates in {file_location}")
-        
-       
-    join_files(envfiles, ".env")
-    return        
-    c.run("cp devops/config/dev.env .env")
+           
+    compile_kong_config()
     c.run("docker-compose up --build --force-recreate -d")
-    c.run("my")
-    c.run("my echo 3006")
+    with change_dir("api"):
+        c.run("python manage.py runserver")
     
 # @task
 # def test(c):
 #     c.run(os.path.join(DEVOPS_DIR, "__tests__/populate-config.test.sh"))
 # ask
+if __name__ == "__main__":
+    load_env()
+    merged = join_yaml_files(["gateway/kong/config/root.yml", "apps/dev_api/kong.yml"])
+    # Save the merged dict as a yaml file
+    with open("merged.yml", "w") as f:
+        yaml.dump(merged, f, default_flow_style=False, sort_keys=False, indent=4)
+        f.close()
+        
+    with open("merged.yml", "r") as f:
+        text = f.read()
+        final = replace_envs_in_string(text)
+        print(final)

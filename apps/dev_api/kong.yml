@@ -2,8 +2,8 @@ _format_version: "3.0"
 
 services:
   - name: dev_api
-    host: $DEV_API_HOST_NAME
-    port: $DEV_API_HTTP_PORT
+    host: ${DEV_API_HOST_NAME}
+    port: ${DEV_API_HTTP_PORT}
     routes:
       - name: dev-api-main-route
         paths:
@@ -19,7 +19,7 @@ services:
         https_redirect_status_code: 308 # permanent redirect
       - name: logout
         paths:
-          - $DEV_API_KONG_LOGOUT_PATH
+          - ${DEV_API_KONG_LOGOUT_PATH}
         strip_path: false
         protocols:
           - https
@@ -30,18 +30,18 @@ plugins:
     # https://github.com/revomatico/kong-oidc/blob/master/README.md
     service: dev_api
     config:
-      client_id: $DEV_API_KONG_KC_CLIENT_ID
-      client_secret: $DEV_API_KONG_KC_CLIENT_SECRET
+      client_id: ${DEV_API_KONG_KC_CLIENT_ID}
+      client_secret: ${DEV_API_KONG_KC_CLIENT_SECRET}
       unauth_action: auth # deny (to return 401)
-      discovery: https://$EXT_HOSTNAME/$DEV_API_KONG_KC_DISCOVERY_URL
-      scop: openid
+      discovery: https://${EXT_HOSTNAME}/${DEV_API_KONG_KC_DISCOVERY_URL}
+      scope: openid
 
-      logout_path: $DEV_API_KONG_LOGOUT_PATH
+      logout_path: ${DEV_API_KONG_LOGOUT_PATH}
 
       # After the plugin clears session (logout), redirect to KC to also clear session
-      redirect_after_logout_uri: https://$EXT_HOSTNAME/$DEV_API_KONG_REDIRECT_AFTER_LOGOUT
+      redirect_after_logout_uri: https://${EXT_HOSTNAME}/${DEV_API_KONG_REDIRECT_AFTER_LOGOUT}
       # must have redirect_after_logout_uri for this to work. Only "yes" works/
-      post_logout_redirect_uri: https://$EXT_HOSTNAME/$DEV_API_KONG_POST_LOGOUT_REDIRECT
+      post_logout_redirect_uri: https://${EXT_HOSTNAME}/${DEV_API_KONG_POST_LOGOUT_REDIRECT}
       redirect_after_logout_with_id_token_hint: "yes"
 
       # header_claims:
@@ -49,32 +49,4 @@ plugins:
       #   - email_verified
       
       # These routes are public and don't need authentication
-      ignore_auth_filters: ~/dev_api/api/v1/public(.*)$
-
-  - name: cors
-    # https://docs.konghq.com/hub/kong-inc/cors/configuration/
-    service: carvantage
-    config: 
-      origins:
-        - localhost
-      methods:
-        - GET
-        - POST
-      headers:
-        - Accept
-        - Accept-Version
-        - Content-Length
-        - Content-MD5
-        - Content-Type
-        - Date
-        - X-Auth-Token
-      exposed_headers:
-        - X-Auth-Token
-      credentials: true
-      max_age: 3600
-      preflight_continue: false
-
-# check out these plugins
-# - bot-detection
-# - proxy-cache
-# - request-terminatiou
+      ignore_auth_filters: (.*)public(.*)$

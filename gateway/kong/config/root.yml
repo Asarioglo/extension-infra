@@ -1,0 +1,61 @@
+_format_version: "3.0"
+
+services:
+  - name: keycloak-auth
+    host: keycloak
+    port: 8080
+    routes:
+      - name: realm-route
+        paths:
+          - /auth
+        strip_path: false
+        protocols:
+          - https
+        https_redirect_status_code: 308
+
+plugins:
+  - name: cors
+    # https://docs.konghq.com/hub/kong-inc/cors/configuration/
+    config: 
+      origins:
+        - localhost
+      methods:
+        - GET
+        - POST
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Auth-Token
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  - name: rate-limiting
+    # configuring this globally is not an option. Needs to be set route-by-route
+    config:
+      # https://docs.konghq.com/hub/kong-inc/rate-limiting/
+      second: 1000
+      minute: 1000
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+      redis_ssl: false
+      redis_ssl_verify: false
+
+  - name: ip-restriction
+    config:
+      allow:
+        - 127.0.0.0/24
+        - 192.168.0.0/16
+
+# check out these plugins
+# - bot-detection
+# - proxy-cache
+# - request-termination
