@@ -1,16 +1,82 @@
 #!/usr/bin/env python3
 
-from invoke import task, MockContext
+from invoke import task
+from collections.abc import Mapping
 from contextlib import contextmanager
 import sys
 import os
 import pytest
+import yaml
+import dotenv
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-KONG_CONFIG_DIR = os.path.join(PROJECT_ROOT, "gateway/kong/kong.yml")
+KONG_CONFIG_DIR = os.path.join(PROJECT_ROOT, "gateway/kong/config")
 DEVOPS_DIR = os.path.join(PROJECT_ROOT, "devops")
 ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 VERBOSE = True
+
+def apps():
+    appsdir = to_abs("apps")
+    for approot in os.scandir(appsdir):
+        if approot.is_dir():
+            yield approot.path
+
+def load_env():
+    # Let's join all envvars from apps into one big-ass envvar. 
+    # These envvars will come from the environment on prod
+    envfiles = [to_abs("devops/config/dev.env")]
+    for appdir in apps():
+        envfiles.append(os.path.join(appdir, "vars.env"))
+ 
+    join_files(envfiles, ".env")
+
+    dotenv.load_dotenv()
+
+@contextmanager
+def tmp_file(path: str, content: str):
+    """
+    Creates a tmp file, yields, then removes it
+    Expects relative paths
+    """
+    path = os.path.join(PROJECT_ROOT, path)
+    debug(f"Creating a temporary file at {path}")
+    try:
+        with open(path, 'w') as f:
+            f.write(content)
+            f.close()
+        debug("file created, yielding")
+        yield
+    finally:
+        debug(f"Cleaning up file {path}")
+        try: os.remove(path)
+        except Exception: pass
+        
+def to_abs(path: str):
+    return os.path.join(PROJECT_ROOT, path)
+        
+@contextmanager
+def repl_file(path: str, content: str):
+    """
+    Replaces the contents of the file, yields, then brings them back
+    Expects relative path
+    """
+    debug(f"Replacing contents of file at {path} with \n{content}")
+    path = os.path.join(PROJECT_ROOT, path)
+    orig_content = None
+    try:
+        with open(path, 'r+') as f:
+            orig_content = f.read()
+            f.truncate(0)
+            f.write(content)
+            f.close()
+        yield
+    finally:
+        if orig_content is not None:
+            with open(path, 'w') as f:
+                f.truncate(0)
+                f.write(orig_content)
+                f.close()
+        
 
 def debug(log: str):
     if VERBOSE:
@@ -37,36 +103,108 @@ def copy_if_not_exists(c, source, dest):
         
 def get_env(varname: str):
     debug(f"Retrieving config: {varname}")
-    with open(ENV_FILE) as f:
-        line = f.readline()
-        while line:
-            parts=line.split("=")
-            if parts[0] == varname:
-                return parts[1].strip()
-            line = f.readline()
+    if varname in os.environ:
+        return os.environ[varname]
     
     return None
 
-def test_get_env():
-    envvar = "EXT_KONG_IMAGE_NAME"
-    val = get_env(envvar)
-    assert val == "local/bosca-infra/kong"
-
+def test__get_env():
+    os.environ["TEST_GET_ENV_1"] = "test_variable_1"
+    os.environ["TEST_GET_ENV_2"] = "!@#$%^&*()"
     
-def get_envs(envfile_path: str):
-    """Env file path is relative to root directory"""
-    debug("loading an env file")
+    assert get_env("TEST_GET_ENV_1") == "test_variable_1"
+    assert get_env("TEST_GET_ENV_2") == "!@#$%^&*()"
 
-    vars = {}
-    with open(os.path.join(PROJECT_ROOT, envfile_path)) as f:
-        line = f.readline()
-        while line:
-            parts = line.split("=")
-            if len(parts) == 2:
-               vars[parts[0]] = parts[2]
-            
-    return vars
+def deep_merge_yaml(d1, d2):
+    """
+    Ok, maybe deep merge is a bit drastic
+    """
+    merged = {}
+    keys_to_merge = ["services", "plugins", "_format_version"]
+
+    for key in keys_to_merge:
+        if key in d1 and key in d2:
+            if isinstance(d1[key], Mapping) and isinstance(d2[key], Mapping):
+                # Deep merge dictionaries
+                merged[key] = deep_merge_dicts(d1[key], d2[key], keys_to_merge)
+            elif isinstance(d1[key], list) and isinstance(d2[key], list):
+                # Append lists (not merging dicts inside lists)
+                merged[key] = d1[key] + d2[key]
+            else:
+                # Replace scalar values
+                merged[key] = d2[key]
+        elif key in d1:
+            merged[key] = d1[key]
+        elif key in d2:
+            merged[key] = d2[key]
+
+    return merged
+
+def join_yaml_files(yml_paths: list):
+    result = None
+    for fpath in yml_paths:
+        fpath_abs = to_abs(fpath)
+        if os.path.exists(fpath_abs):
+            with open(fpath_abs, 'r') as f:
+                yml = yaml.safe_load(f)
+                if result is None:
+                    result = yml
+                else:
+                    result = deep_merge_yaml(result, yml)
     
+    return result
+
+def compile_kong_config():
+    kong_files = [os.path.join(KONG_CONFIG_DIR, "root.yml")]
+    for appdir in apps():
+        if(os.path.exists(os.path.join(appdir, "kong.yml"))):
+            kong_files.append(os.path.join(appdir, "kong.yml"))
+    
+    out = join_yaml_files(kong_files)
+    out = replace_envs_in_string(yaml.dump(out, default_flow_style=False, sort_keys=False, indent=4))
+    with open(os.path.join(KONG_CONFIG_DIR, "kong.yml"), 'w') as f:
+        f.write(out)
+        f.close()
+
+def join_files(paths: list, out_file_path: str):
+    content = ""
+    for path in paths:
+        abs_path = os.path.join(PROJECT_ROOT, path)
+        with open(abs_path, 'r') as f:
+            content += f.read()
+            content += "\n"
+            f.close()
+        
+    abs_out_path = to_abs(out_file_path)
+    with open(abs_out_path, 'w') as f:
+        f.truncate(0)
+        f.write(content)
+        f.close()
+        
+def test_join_files():
+    f1 = "Content line 1\nContent Line 2"
+    f2 = "CONTENT line 3\nContent Line 4"
+    try:
+        with tmp_file("__tmp1", f1):
+            with tmp_file("__tmp2", f2):
+                join_files(["__tmp1", "__tmp2"], "__tmp3") 
+                assert os.path.exists(to_abs("__tmp3"))
+                # With override
+                join_files(["__tmp1", "__tmp2"], "__tmp3")
+                with open(to_abs("__tmp3")) as f:
+                    actual = f.read()
+                    expected = f"{f1}\n{f2}\n"
+                    debug(f"Comparing {actual} WITH {expected}")
+                    assert actual == expected 
+    finally:
+        os.remove("__tmp3")
+    
+def replace_envs_in_string(string: str):
+    for key, value in os.environ.items():
+        string = string.replace(f"${{{key}}}", value)
+        
+    return string
+
 @contextmanager
 def change_dir(new_dir):
     old_dir = os.getcwd()
@@ -120,7 +258,6 @@ def compile_env(src_env_file: str, dynamic_params: dict):
 #     with compile_env("devops/config/dev.env", {"FOO": "bar", "EXT_KONG_IMAGE_TAG": "test"}) as env_file:
 #         with open(env_file) as f:
 #             print(f.read())
-
             
 @task
 def copy_dev_env(c):    
@@ -128,7 +265,8 @@ def copy_dev_env(c):
     
 @task
 def dev(c):
-    copy_if_not_exists(c, "devops/config/dev.env", ".env")
+    # Setup the environmental variables. 
+    load_env()
 
     # Let's generate some certificates, if we need the ofc.
     key_name = get_env("EXT_KONG_CERT_KEY_NAME") 
@@ -170,13 +308,25 @@ def dev(c):
             ))
     else:
         print(f"Using certificates in {file_location}")
-        
-    c.run("cp devops/config/dev.env .env")
+           
+    compile_kong_config()
     c.run("docker-compose up --build --force-recreate -d")
-    c.run("my")
-    c.run("my echo 3006")
+    with change_dir("api"):
+        c.run("python manage.py runserver")
     
 # @task
 # def test(c):
 #     c.run(os.path.join(DEVOPS_DIR, "__tests__/populate-config.test.sh"))
 # ask
+if __name__ == "__main__":
+    load_env()
+    merged = join_yaml_files(["gateway/kong/config/root.yml", "apps/dev_api/kong.yml"])
+    # Save the merged dict as a yaml file
+    with open("merged.yml", "w") as f:
+        yaml.dump(merged, f, default_flow_style=False, sort_keys=False, indent=4)
+        f.close()
+        
+    with open("merged.yml", "r") as f:
+        text = f.read()
+        final = replace_envs_in_string(text)
+        print(final)
