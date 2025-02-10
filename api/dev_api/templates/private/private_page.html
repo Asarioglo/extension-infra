@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <header>
+        <title>Private Page</title>
+    </header>
+    <body>
+        <h2>Private Page</h2>
+        <p>This page should only be visible to authenticated users</p>
+
+        <h2>Current User</h2>
+        <p><strong>Username:</strong> {{ username }}</p>
+        <p><strong>Email:</strong> {{ email }}</p>
+        <p><strong>Full Name:</strong> {{ full_name }}</p>
+        <p><strong>User Token:</strong> {{ user_token }}</p>
+        <p><strong>ID Token:</strong> {{ access_token }}</p>
+        <div style="width: 100%; position: relative;">
+            <div style="width: 50%; float: left;">
+                <h2>Access Token Parsed</h2>
+                <div style="white-space: pre-wrap;">{{ access_token_parsed }}</div>
+            </div
+            <div style="width: 50%; float: right;">
+                <h2>User Token Parsed</h2>
+                <div style="white-space: pre-wrap;">{{ user_token_parsed }}</div>
+            </div>
+        </div>
+        <div style="position: absolute; top: 10px; right: 10px;">
+            <a href="{{ logout_url }}">Logout</a>
+        </div>
+
+    </body>
+</html>

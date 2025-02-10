@@ -3,4 +3,5 @@ from dev_api.views import public
 
 urlpatterns = [
     path('', public.public_endpoint, name='public-endpoint'),
+    path("bye/", public.bye, name="bye")
 ]
