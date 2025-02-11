@@ -1,10 +1,40 @@
 # extension-infra
 
-Configuration and layout of an application environment deployment. The deployment is meant
-to be a fully sufficient environment for a scalable application backend with OAuth2.0
-authentication and user management out of the box. Currently this environment is meant to run
-on a single machine with Kong as the API gateway and Keycloak as the authentication and use
-management. 
+This setup provides a live experimental environment where various applications
+developed with different tools, platforms, languages, frameworks, etc. could be easily
+deployed in a secure environment. More importantly, an environment providing out-of-the-box
+authentication and authorization flows.
+
+<center>
+    <img src="resources/images/Ext-Infra-HLD.png" style="width:60%; min-width: 500px;">
+</center>
+
+## Components
+
+### Kong Gateway
+https://konghq.com/
+
+Open source API gateway providing strong request routing, load balancing, and upstream
+management features. The gateway can be enhanced via a plugin system which this project
+utilizes to achieve such features as Oauth2.0 flows with OIDC, rate limiting, etc. 
+
+This project strictly utilizes free version of Kong Gateway, as well as its plugins. 
+There had been some adjustments for this to be true. For example, custom container layers
+introducing the open oidc connect plugin.
+
+### Keycloak
+
+Implementing and maintaining secure authentication in applications usually takes a good
+chunk of app development. This is the reason this project decided to outsource this work
+to Keycloak. This is a proven platform implementing the best practices in a robust and 
+easy to use way. 
+
+One important reason we chose Keycloak is that it takes care of user management dashboards
+and login screens. 
+
+### Keycloak & Gong
+
+To be completed
 
 ## Development
 
@@ -18,8 +48,8 @@ Locally, you will need the following tools to startup this setup and test/develo
 - Unix based host system (linux, macos)
 - SSL Certificate generator / manager for Kong
 - Docker & docker-compose
-- Python with `invoke` installed
-    - If you already have Python run `pip install -r requirements.txt`
+- Python & packages installed
+    - After installing Python run `pip install -r requirements.txt`
 
 ### Quickstart
 
@@ -30,10 +60,10 @@ local dev environment
 invoke dev
 ```
 
-This will automate the configuration, ssl certs, image builds and container startup for you.
+This will generate configs, automate the configuration, ssl certs, image builds and container startup for you.
 The default behavior will assume the local DNS name, ports, certificates, etc. 
-Assumptions can be seen in `.env` file after invoke has run, or 
-in `devops/config/dev.env` prior to the first run. 
+Assumptions can be seen in `.env` file after invoke has run, or in `devops/config/dev.env`
+prior to the first run. 
 
 Note you may still need to take actions after this. Look out for these:
 
