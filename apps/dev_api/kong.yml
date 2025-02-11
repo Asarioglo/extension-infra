@@ -8,7 +8,7 @@ services:
       - name: dev-api-main-route
         paths:
           - /dev_api/
-        strip_path: true
+        strip_path: false
         methods:
           - GET
           - POST
@@ -17,13 +17,13 @@ services:
         protocols:
           - https
         https_redirect_status_code: 308 # permanent redirect
-      - name: logout
-        paths:
-          - ${DEV_API_KONG_LOGOUT_PATH}
-        strip_path: false
-        protocols:
-          - https
-        https_redirect_status_code: 308
+      # - name: logout
+      #   paths:
+      #     - ${DEV_API_KONG_LOGOUT_PATH}
+      #   strip_path: false
+      #   protocols:
+      #     - https
+      #   https_redirect_status_code: 308
 
 plugins:
   - name: oidc
