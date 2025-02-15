@@ -32,3 +32,5 @@ for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker c
     do sudo apt-get remove $pkg; 
 done
 
+sudo apt-get install -y docker-ce docker-ce-cli \
+    containerd.io docker-buildx-plugin docker-compose-plugin
