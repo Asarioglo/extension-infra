@@ -15,19 +15,23 @@ services:
       KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN_NAME}"
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
 
-      # For running behind a TLS termination proxy
-      # KC_HOSTNAME: ${KEYCLOAK_HOST_NAME:-localhost}
-      # KC_PROXY_HEADERS: "forwarded|xforwarded"
       # https://keycloak.discourse.group/t/using-keycloak-behind-kong-proxy-redirection-issue/16261
       KC_HTTP_PORT: ${KEYCLOAK_PORT:-8080}
-      KC_PROXY: edge
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
+      # KC_HTTP_RELATIVE_PATH: /auth
+
+      # Running behind a reverse proxy
+      # KC_FRONTEND_URL: "https://${EXT_HOST}/auth"
+      KC_HOSTNAME: "https://${EXT_HOSTNAME}:${EXT_KONG_SSL_PORT_EXTERNAL}/auth"
+      # KC_HOSTNAME_ADMIN_URL: "https://${EXT_HOST}/auth"
+      KC_PROXY: "edge"
+      KC_PROXY_HEADERS: "forwarded"
       KC_HTTP_ENABLED: true
-      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HTTP_RELATIVE_PATH: "/auth"
 
       # Runtime configuration
-      KC_LOG_LEVEL: info
+      KC_LOG_LEVEL: debug
       KC_METRICS_ENABLED: true
       KC_HEALTH_ENABLED: true
 

@@ -103,7 +103,53 @@ work as needed.
 To configure Keycloak follow these steps:
 
 - Create a new Keycloak Realm
-- 
 
-## Build
+
+### Restore dev realm from file
+When first setting up this environment locally, for dev application   
+to work correctly you will need to create the realm and update all the 
+keys and endpoints. However, you can also import a realm from a file 
+located at `keycloak/dev-api.json` and have everything setup for you for
+testing. 
+
+The realm will have a client `dev-api-app` and a user `test1` with password
+`test1`;
+
+
+## Onboarding Applications
+
+### Setup Keycloak
+
+1. Create a new Realm (ex. Dev API). Just the name is enough.
+    Make sure the name doesn't contain spaces and other characters you
+    will have pain with in CLI
+1. Create a Client
+    - Client Type: OpenID Connect
+    - Client ID: any, this will uniquely identify your client
+    - Name: any, this one is for you to detect the client among others
+    - Always Display in UI: off
+    - Client Authentication: On, this means that any user will be able to open a login screen
+    - Authorization: On, we want the user profile and ID
+    - Standard Flow: checked
+    - Direct Access Grant: checked
+1. Root URL: leave blank
+1. Home URL: leave blank
+1. Valid redirect URIs: these are specific to your application. Should include the full path
+    including the protocol and domain name matching the `EXT_HOSTNAME` envvar. 
+    - Ex. `https://carvantage.host.my/*` Note the wildcard. This is good for dev
+        but don't do this in a real app
+1. Valid post logout URIs: these should match your configuration for post-logout uri in the
+    app kong.yml. See `apps/dev_api/vars.env/DEV_API_KONG_POST_LOGOUT_REDIRECT`
+    - Ex `https://carvantage.host.my/*` Note the wildcard. This is good for dev
+        but don't do this in a real 
+1. Web Origins: `/*` for the test application (local dev), but should be set to your
+    login routes and host name.
+1. Generate and copy client credentials
+    - Navigate to `Credentials` tab of the new client
+    - Make sure Client Authenticator is set to `Client Id and Secret`
+    - Generate and copy the client secret
+1. Create the Discovery URL for Kong
+    - auth/realms/<realm_name>/.well-known/openid-configuration
+1. Create the Redirect After Logout path
+    - auth/realms/<realm_name>/protocol/openid-connect/logout
 
