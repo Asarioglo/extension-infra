@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from invoke import task
+from invoke import task, run
 from collections.abc import Mapping
 from contextlib import contextmanager
 import sys
@@ -308,9 +308,9 @@ def dev(c):
             ))
     else:
         print(f"Using certificates in {file_location}")
-           
+
     compile_kong_config()
-    c.run("docker-compose up --build --force-recreate -d")
+    c.run("sudo docker compose up --build --force-recreate -d", pty=True)
     with change_dir("api"):
         c.run("python manage.py runserver")
     
