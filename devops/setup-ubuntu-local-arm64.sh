@@ -34,3 +34,13 @@ done
 
 sudo apt-get install -y docker-ce docker-ce-cli \
     containerd.io docker-buildx-plugin docker-compose-plugin
+
+
+sudo apt install -y python3.12-venv
+
+python3 -m venv /tmp/infra
+/tmp/infra/bin/pip install -r requirements.txt
+
+echo
+echo "Virtualenv has been setup in /tmp/infra. Run this command"
+echo "source /tmp/infra/bin/activate" before running invoke commands.

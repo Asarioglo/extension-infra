@@ -310,7 +310,7 @@ def dev(c):
         print(f"Using certificates in {file_location}")
 
     compile_kong_config()
-    c.run("sudo docker compose up --build --force-recreate -d", pty=True)
+    c.run("sudo docker compose up --build --force-recreate -d")
     with change_dir("api"):
         c.run("python manage.py runserver")
     
