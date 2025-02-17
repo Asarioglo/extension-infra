@@ -28,6 +28,10 @@ services:
       - KONG_PLUGINS=bundled,oidc
       - KONG_SSL_CERT=/usr/local/kong/certs/${EXT_KONG_CERT_NAME}
       - KONG_SSL_CERT_KEY=/usr/local/kong/certs/${EXT_KONG_CERT_KEY_NAME}
+      # Ensures kong reads actual client ip address
+      - KONG_TRUSTED_IPS=0.0.0.0/0
+      - KONG_REAL_IP_HEADER=X-Forwarded-For
+      - KONG_REAL_IP_RECURSIVE=on
 
     ports:
       - "${EXT_KONG_HTTP_PORT_EXTERNAL}:${EXT_KONG_HTTP_PORT_INTERNAL}/tcp"

@@ -333,6 +333,22 @@ def vm(c):
     setup_env(c, "vm")
     c.run("sudo docker compose --profile vm up --build --force-recreate -d", pty=True)
     
+@task
+def cleanup(c):
+    dotenv.load_dotenv()
+    if get_env("EXT_ENVIRONMENT") == "dev":
+        c.run("docker compose --profile dev down")
+    elif get_env("EXT_ENVIRONMENT") == "vm":
+        c.run("sudo docker compose --profile vm down")
+    else:
+        raise Exception(f"Invalid environment: {get_env('EXT_ENVIRONMENT')}")
+
+    datadir = get_env("KEYCLOAK_DB_DATA_DIR")
+    # Let's not delete the root dir
+    if os.path.exists(datadir) and len(datadir.split("/")) > 1:
+        print(f"Deleting {datadir}")
+        c.run(f"rm -rf {datadir}")
+
 # @task
 # def test(c):
 #     c.run(os.path.join(DEVOPS_DIR, "__tests__/populate-config.test.sh"))

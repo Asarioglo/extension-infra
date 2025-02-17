@@ -5,30 +5,32 @@ networks:
     driver: bridge
 
 services:
-  postgres_db:
+  keycloak_db:
     extends:
-      file: src/components/db/docker-compose.yml
+      file: src/components/auth/db/docker-compose.yml
       service: db
-    container_name: postgres_db
-    networks:
-      - app_global
-
-  postgress_admin:
-    extends:
-      file: src/components/db/docker-compose.yml
-      service: adminer
-    container_name: postgress_admin
+    container_name: keycloak_db
     networks:
       - app_global
 
   keycloak:
     extends:
-      file: src/components/keycloak/docker-compose.yml
+      file: src/components/auth/keycloak/docker-compose.yml
       service: keycloak_web
 
     container_name: keycloak_web
     depends_on:
-      - postgres_db
+      - keycloak_db
+    networks:
+      - app_global
+
+  postgress_admin:
+    extends:
+      file: src/components/auth/db/docker-compose.yml
+      service: adminer
+    container_name: keycloak_db_admin
+    depends_on:
+      - keycloak_db
     networks:
       - app_global
 
@@ -55,5 +57,3 @@ services:
       - vm
       - staging
 
-volumes:
-  pgdata:

@@ -7,7 +7,7 @@ services:
     environment:
       # Database
       KC_DB: postgres
-      KC_DB_URL: "jdbc:postgresql://postgres_db:5432/${KEYCLOAK_POSTGRES_DB}"
+      KC_DB_URL: "jdbc:postgresql://keycloak_db:5432/${KEYCLOAK_POSTGRES_DB}"
       KC_DB_USERNAME: "${KEYCLOAK_DB_USER}"
       KC_DB_PASSWORD: "${KEYCLOAK_DB_PASS}"
 
@@ -29,6 +29,7 @@ services:
       KC_PROXY_HEADERS: "xforwarded"
       KC_HTTP_ENABLED: true
       KC_HTTP_RELATIVE_PATH: "/auth"
+      KC_FEATURES: "scripts"
 
       # Runtime configuration
       KC_LOG_LEVEL: debug
@@ -37,5 +38,5 @@ services:
 
     command: start-dev
     # command: ["./wait-for-it.sh", "postgres_db", "5432", "kc.sh start-dev"]
-    ports:
-      - "${KEYCLOAK_PORT}:${KEYCLOAK_PORT}"
+    # ports:
+      # - "${KEYCLOAK_PORT}:${KEYCLOAK_PORT}"
