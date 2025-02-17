@@ -35,6 +35,8 @@ services:
       - "${EXT_KONG_SSL_PORT_EXTERNAL}:${EXT_KONG_SSL_PORT_INTERNAL}/tcp"
       - "${EXT_KONG_ADMIN_SSL_PORT_EXTERNAL}:${EXT_KONG_ADMIN_SSL_PORT_INTERNAL}/tcp"
 
+    
+
     # Uncomment to run in verbose mode
     # command:
     #   - "kong"

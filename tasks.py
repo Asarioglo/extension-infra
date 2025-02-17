@@ -10,7 +10,8 @@ import yaml
 import dotenv
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-KONG_CONFIG_DIR = os.path.join(PROJECT_ROOT, "gateway/kong/config")
+KONG_DIR = os.path.join(PROJECT_ROOT, "src/components/gateway/kong")
+KONG_CONFIG_DIR = os.path.join(KONG_DIR, "config")
 DEVOPS_DIR = os.path.join(PROJECT_ROOT, "devops")
 ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 VERBOSE = True
@@ -21,12 +22,21 @@ def apps():
         if approot.is_dir():
             yield approot.path
 
-def load_env():
+def load_env(environment: str = "dev"):
     # Let's join all envvars from apps into one big-ass envvar. 
     # These envvars will come from the environment on prod
-    envfiles = [to_abs("devops/config/dev.env")]
+    app_env_file = None
+    match environment:
+        case "dev":
+            envfiles = [to_abs("devops/config/dev.env")]
+            app_env_file = "dev.env"
+        case "vm":
+            envfiles = [to_abs("devops/config/vm.env")]
+            app_env_file = "vm.env"
+        case _:
+            raise Exception(f"Invalid environment: {environment}")
     for appdir in apps():
-        envfiles.append(os.path.join(appdir, "vars.env"))
+        envfiles.append(os.path.join(appdir, "dev.env"))
  
     join_files(envfiles, ".env")
 
@@ -262,11 +272,10 @@ def compile_env(src_env_file: str, dynamic_params: dict):
 @task
 def copy_dev_env(c):    
     copy_if_not_exists(c, "devops/config/dev.env", ".env")
-    
-@task
-def dev(c):
+
+def setup_env(c, environment: str = "dev"):
     # Setup the environmental variables. 
-    load_env()
+    load_env(environment)
 
     # Let's generate some certificates, if we need the ofc.
     key_name = get_env("EXT_KONG_CERT_KEY_NAME") 
@@ -281,7 +290,7 @@ def dev(c):
             "in it?"
         ))
 
-    file_location = os.path.join(PROJECT_ROOT, "gateway/kong", file_location)
+    file_location = os.path.join(KONG_DIR, file_location)
     key_location = os.path.join(file_location, key_name)
     cert_location = os.path.join(file_location, cert_name) 
 
@@ -310,23 +319,22 @@ def dev(c):
         print(f"Using certificates in {file_location}")
 
     compile_kong_config()
-    c.run("sudo docker compose up --build --force-recreate -d")
-    with change_dir("api"):
+    
+@task
+def dev(c):
+    setup_env(c, "dev")
+    c.run("docker compose --profile dev up --build --force-recreate -d")
+    with change_dir("src/api"):
         c.run("python manage.py runserver")
+
+@task
+def vm(c):
+    setup_env(c, "vm")
+    c.run("docker compose up --build --force-recreate -d", pty=True)
     
 # @task
 # def test(c):
 #     c.run(os.path.join(DEVOPS_DIR, "__tests__/populate-config.test.sh"))
 # ask
 if __name__ == "__main__":
-    load_env()
-    merged = join_yaml_files(["gateway/kong/config/root.yml", "apps/dev_api/kong.yml"])
-    # Save the merged dict as a yaml file
-    with open("merged.yml", "w") as f:
-        yaml.dump(merged, f, default_flow_style=False, sort_keys=False, indent=4)
-        f.close()
-        
-    with open("merged.yml", "r") as f:
-        text = f.read()
-        final = replace_envs_in_string(text)
-        print(final)
+    pass

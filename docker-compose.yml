@@ -7,7 +7,7 @@ networks:
 services:
   postgres_db:
     extends:
-      file: db/docker-compose.yml
+      file: src/components/db/docker-compose.yml
       service: db
     container_name: postgres_db
     networks:
@@ -15,7 +15,7 @@ services:
 
   postgress_admin:
     extends:
-      file: db/docker-compose.yml
+      file: src/components/db/docker-compose.yml
       service: adminer
     container_name: postgress_admin
     networks:
@@ -23,7 +23,7 @@ services:
 
   keycloak:
     extends:
-      file: keycloak/docker-compose.yml
+      file: src/components/keycloak/docker-compose.yml
       service: keycloak_web
 
     container_name: keycloak_web
@@ -34,13 +34,23 @@ services:
 
   kong_gateway:
     extends:
-      file: gateway/kong/docker-compose.yml
+      file: src/components/gateway/kong/docker-compose.yml
       service: kong
     container_name: kong_gateway
     depends_on: 
       - keycloak
     networks:
       - app_global
+
+  dev_api:
+    extends:
+      file: apps/dev_api/docker-compose.yaml
+      service: api
+    container_name: dev_api
+    networks:
+      - app_global
+    profiles: 
+      - "!dev"
 
 volumes:
   pgdata:

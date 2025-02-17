@@ -52,7 +52,8 @@ plugins:
   - name: ip-restriction
     config:
       allow:
-        - 127.0.0.0/24
+        - 127.0.0.0/24 
+        - 172.18.0.0/24 # For internal docker resolution
         - 192.168.0.0/16
 
 # check out these plugins
