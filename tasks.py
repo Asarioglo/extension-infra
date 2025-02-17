@@ -9,14 +9,14 @@ import yaml
 import dotenv
 
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-KONG_DIR = os.path.join(PROJECT_ROOT, "src/components/gateway/kong")
+KONG_DIR = os.path.join(PROJECT_ROOT, "infrastructure/gateway/kong")
 KONG_CONFIG_DIR = os.path.join(KONG_DIR, "config")
 DEVOPS_DIR = os.path.join(PROJECT_ROOT, "devops")
 ENV_FILE = os.path.join(PROJECT_ROOT, ".env")
 VERBOSE = True
 
 def apps():
-    appsdir = to_abs("apps")
+    appsdir = to_abs("apps/downstream")
     for approot in os.scandir(appsdir):
         if approot.is_dir():
             yield approot.path
@@ -325,7 +325,7 @@ def setup_env(c, environment: str = "dev"):
 def dev(c):
     setup_env(c, "dev")
     c.run("docker compose --profile dev up --build --force-recreate -d")
-    with change_dir("src/api"):
+    with change_dir("apps/src/api"):
         c.run("python manage.py runserver")
 
 @task
