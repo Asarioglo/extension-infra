@@ -50,7 +50,10 @@ services:
     networks:
       - app_global
     profiles: 
+      - default
       - "!dev"
+      - vm
+      - staging
 
 volumes:
   pgdata:

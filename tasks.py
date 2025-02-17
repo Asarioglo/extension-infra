@@ -331,7 +331,7 @@ def dev(c):
 @task
 def vm(c):
     setup_env(c, "vm")
-    c.run("sudo docker --profile vm compose up --build --force-recreate -d", pty=True)
+    c.run("sudo docker compose --profile vm up --build --force-recreate -d", pty=True)
     
 # @task
 # def test(c):

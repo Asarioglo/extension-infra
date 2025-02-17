@@ -41,6 +41,10 @@ sudo apt install -y python3.12-venv
 python3 -m venv /tmp/infra
 /tmp/infra/bin/pip install -r requirements.txt
 
+if ! grep -q "vm.my" /etc/hosts; then
+    echo "127.0.0.0   vm.my" | sudo tee -a /etc/hosts
+fi
+
 echo
 echo "Virtualenv has been setup in /tmp/infra. Run this command"
 echo "source /tmp/infra/bin/activate" before running invoke commands.
