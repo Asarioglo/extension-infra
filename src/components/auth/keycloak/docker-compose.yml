@@ -7,7 +7,7 @@ services:
     environment:
       # Database
       KC_DB: postgres
-      KC_DB_URL: "jdbc:postgresql://keycloak_db:5432/${KEYCLOAK_POSTGRES_DB}"
+      KC_DB_URL: "jdbc:postgresql://keycloak_db:5432/keycloak"
       KC_DB_USERNAME: "${KEYCLOAK_DB_USER}"
       KC_DB_PASSWORD: "${KEYCLOAK_DB_PASS}"
 
@@ -16,7 +16,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
 
       # https://keycloak.discourse.group/t/using-keycloak-behind-kong-proxy-redirection-issue/16261
-      KC_HTTP_PORT: ${KEYCLOAK_PORT:-8080}
+      KC_HTTP_PORT: 8080
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       # KC_HTTP_RELATIVE_PATH: /auth
@@ -37,6 +37,3 @@ services:
       KC_HEALTH_ENABLED: true
 
     command: start-dev
-    # command: ["./wait-for-it.sh", "postgres_db", "5432", "kc.sh start-dev"]
-    # ports:
-      # - "${KEYCLOAK_PORT}:${KEYCLOAK_PORT}"

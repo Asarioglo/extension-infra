@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from contextlib import contextmanager
 import sys
 import os
-import pytest
 import yaml
 import dotenv
 
@@ -26,12 +25,13 @@ def load_env(environment: str = "dev"):
     # Let's join all envvars from apps into one big-ass envvar. 
     # These envvars will come from the environment on prod
     app_env_file = None
+    envfiles = [to_abs("devops/config/constants.env")]
     match environment:
         case "dev":
-            envfiles = [to_abs("devops/config/dev.env")]
+            envfiles.append(to_abs("devops/config/dev.env"))
             app_env_file = "dev.env"
         case "vm":
-            envfiles = [to_abs("devops/config/vm.env")]
+            envfiles.append(to_abs("devops/config/vm.env"))
             app_env_file = "vm.env"
         case _:
             raise Exception(f"Invalid environment: {environment}")
