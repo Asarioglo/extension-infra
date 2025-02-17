@@ -36,8 +36,9 @@ def load_env(environment: str = "dev"):
         case _:
             raise Exception(f"Invalid environment: {environment}")
     for appdir in apps():
-        envfiles.append(os.path.join(appdir, "dev.env"))
+        envfiles.append(os.path.join(appdir, app_env_file))
  
+    print(f"Concatenating {str(envfiles)}")
     join_files(envfiles, ".env")
 
     dotenv.load_dotenv()
@@ -330,7 +331,7 @@ def dev(c):
 @task
 def vm(c):
     setup_env(c, "vm")
-    c.run("docker compose up --build --force-recreate -d", pty=True)
+    c.run("sudo docker --profile vm compose up --build --force-recreate -d", pty=True)
     
 # @task
 # def test(c):
@@ -338,3 +339,4 @@ def vm(c):
 # ask
 if __name__ == "__main__":
     pass
+

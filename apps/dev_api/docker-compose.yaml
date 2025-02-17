@@ -1,6 +1,6 @@
 services:
   api:
     build:
-      context: .
+      context: ../../src/api
     ports:
       - "${DEV_API_HTTP_PORT}:${DEV_API_HTTP_PORT}"

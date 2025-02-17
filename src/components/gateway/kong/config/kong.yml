@@ -11,7 +11,7 @@ services:
         - https
         https_redirect_status_code: 308
 -   name: dev_api
-    host: host.docker.internal
+    host: dev_api
     port: 8000
     routes:
     -   name: dev-api-main-route
