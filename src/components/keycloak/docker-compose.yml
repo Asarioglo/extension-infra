@@ -26,7 +26,7 @@ services:
       KC_HOSTNAME: "https://${EXT_HOSTNAME}:${EXT_KONG_SSL_PORT_EXTERNAL}/auth"
       # KC_HOSTNAME_ADMIN_URL: "https://${EXT_HOST}/auth"
       KC_PROXY: "edge"
-      KC_PROXY_HEADERS: "forwarded"
+      KC_PROXY_HEADERS: "xforwarded"
       KC_HTTP_ENABLED: true
       KC_HTTP_RELATIVE_PATH: "/auth"
 
