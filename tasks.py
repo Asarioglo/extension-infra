@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 from invoke import task, run
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -36,6 +37,7 @@ def load_env(environment: str = "dev"):
         case _:
             raise Exception(f"Invalid environment: {environment}")
     for appdir in apps():
+        envfiles.append(os.path.join(appdir, "constants.env"))
         envfiles.append(os.path.join(appdir, app_env_file))
  
     print(f"Concatenating {str(envfiles)}")
@@ -349,10 +351,19 @@ def cleanup(c):
         print(f"Deleting {datadir}")
         c.run(f"rm -rf {datadir}")
 
+
+
 # @task
-# def test(c):
-#     c.run(os.path.join(DEVOPS_DIR, "__tests__/populate-config.test.sh"))
-# ask
+# def ci_containers(c):
+#     load_env()
+#     print()
+#     for item in os.environ:
+#         print(f"{item}={os.environ[item]}")
+#     print()
+#     c.run("docker compose build kong_gateway", env=os.environ)
+#     # aws ecr get-login-password --profile=boscadeploy | docker login --username AWS --password-stdin 730335250061.dkr.ecr.us-east-1.amazonaws.com/bosca-infra/kong
+
+
 if __name__ == "__main__":
     pass
 
