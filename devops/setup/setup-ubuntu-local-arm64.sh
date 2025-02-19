@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-./common.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/common.sh"
 
 sudo apt install libnss3-tools
 

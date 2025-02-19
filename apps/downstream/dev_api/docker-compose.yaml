@@ -4,3 +4,4 @@ services:
       context: ../../src/api
     ports:
       - "${DEV_API_HTTP_PORT}:${DEV_API_HTTP_PORT}"
+    image: ${EXT_APP_IMAGE_NAME}:${EXT_APP_IMAGE_TAG}

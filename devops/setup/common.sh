@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+if [[ "$EXT_APP_DIR" == "" ]]; then
+    echo "EXT_APP_DIR is not set"
+    exit 1
+fi
+
+sudo mkdir -p $EXT_APP_DIR
+sudo chown -R $(whoami) $EXT_APP_DIR
+
 sudo apt update
 
 sudo apt install -y python3 python3-venv python3-pip libaugeas0
@@ -28,9 +36,11 @@ done
 sudo apt install -y docker-ce docker-ce-cli \
     containerd.io docker-buildx-plugin docker-compose-plugin
 
-python3 -m venv /opt/py-infra
-/opt/py-infra/bin/pip install -r requirements.txt
+# Create a directory for this application with current user as owner
+
+python3 -m venv "$EXT_APP_DIR/py-infra"
+"$EXT_APP_DIR/py-infra/bin/pip" install -r requirements.txt
 
 echo
-echo "Virtualenv has been setup in /tmp/infra. Run this command"
-echo "source /opt/py-infra/bin/activate" before running invoke commands.
+echo "Virtualenv has been setup in $EXT_APP_DIR/py-infra. Run this command"
+echo "source $EXT_APP_DIR/py-infra/bin/activate" before running invoke commands.

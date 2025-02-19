@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-./common.sh
-
-sudo apt update
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/common.sh"
 
 sudo python3 -m venv /opt/certbot/
 sudo /opt/certbot/bin/pip install --upgrade pip
